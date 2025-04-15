@@ -16,9 +16,11 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter API Example',
-      theme: ThemeData(primarySwatch: Colors.blue, primarySwatch: Colors.purple),
-        home: PaginaHome(),
-    )
+      home: PaginaHome(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)
+        ),
+    ),
   }
 }
 
@@ -30,6 +32,50 @@ class PaginaHome extends StatefulWidget {
 }
 class _PaginaHomeState extends State<PaginaHome> {
   List<Post?>? post;
+
+  void clickGetButton() {
+    developer.log('GET do Banco de Dados clicked!');
+    setState(() {
+      post = getPostagem();
+    });
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Center(child: const Text('Flutter API Example'))),
+        body: SizedBox(
+          height: 500,
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              FutureBuilder<Post?>(
+                future: post,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.connectionState == ConnectionState.none) {
+                    return Container();
+                  } else {
+                    if (snapshot.hasData) {
+                      return FormatacaoDados(context, snapshot);
+                    } else if (snapshot.hasError) {
+                      return Text('Title: ${snapshot.error}');
+                    } else {
+                      return Container();
+                    }
+                  }
+                },
+              ),
+              ],
+          ),
+        ),
+      );
+  }
+}
 
   @override
 
@@ -65,7 +111,20 @@ class _PaginaHomeState extends State<PaginaHome> {
               ],
           ),
         ),
-      ),
+      );
+    }
+
+  Future<Post?> getPostagem() async {
+    developer.log('Iniciando transação GET!');
+    final url = Uri.parse('https://jsonplaceholder.typicode.com/posts/2');
+    final resposta = await(http.get(url));
+    
+    if (response.statusCode == 200) {
+      developer.log('Transação GET finalizada!');
+      return Post.fromJson(convert.jsonDecode(response.body));
+    } else {
+      throw Exception('Falha ao carregar Post');
+    }
   }
 
   Widget FormatacaoDados(BuildContext context, AsyncSnapshot<Post?> snapshot) {
